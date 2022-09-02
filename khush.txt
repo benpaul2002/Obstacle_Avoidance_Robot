@@ -1,0 +1,213 @@
+#include <TouchScreen.h>
+#include <Adafruit_MotorShield.h>
+#include <MotorDriver.h>
+
+#include <ThingSpeak.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <HTTPClient.h>
+const char* ssid = "ben-hp";   // your network SSID (name) 
+const char* password = "myhphotspot";   // your network password
+long channel_num= 1848245;
+int writeChannelID = 1848245;
+char writeAPIKey[] = "WGU883V6XLSQR7ME";
+
+WiFiClient  client;
+WebServer server(80);
+
+String GET_Request(const char* server) {
+  HTTPClient http;    
+  http.begin(server);
+  int httpResponseCode = http.GET();
+  
+  String payload = "{}"; 
+  
+  if (httpResponseCode>0) {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    payload = http.getString();
+  }
+  else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  http.end();
+
+  return payload;
+}
+
+String SendHTML(void){
+  String ptr = "<!DOCTYPE html> <html>\n";
+  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+  ptr +="<title>LED Control</title>\n";
+  ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
+  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
+  ptr +=".button {display: block;width: 80px;background-color: #1abc9c;border: none; color:white; padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button-on {background-color: #1abc9c;}\n";
+  ptr +=".button-on:active {background-color: #16a085;}\n";
+  ptr +=".button-off {background-color: #34495e;}\n";
+  ptr +=".button-off:active {background-color: #2c3e50;}\n";
+  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
+  ptr +="</style>\n";
+  ptr +="</head>\n";
+  ptr +="<body>\n";
+  ptr +="<h1>ESW</h1>\n";
+  ptr +="<h2>Ultrasonic Sensor</h2>\n";
+  ptr +="<h3>Distance (in cm): " + distanceString + "</h3>\n";
+  ptr +="<h2>LED Control</h2>\n";
+  ptr +="<a class=\"button button-on\" href=\"https://api.thingspeak.com/update?api_key=ZUCUEXSI24UEIZIM&field1=1\">ON</a>\n";
+  ptr +="<a class=\"button button-off\" href=\"https://api.thingspeak.com/update?api_key=ZUCUEXSI24UEIZIM&field1=0\">OFF</a>\n";  ptr +="</body>\n";
+  ptr +="</html>\n";
+  return ptr;
+}
+
+void handleConnect() {
+  server.send(200,"text/html",SendHTML());
+}
+
+
+MotorDriver m;
+
+long duration1;                                                           //duration of ultrasonic pulse
+long duration2;
+long duration3;
+int distanceCm1;                                                          //distance in cm
+int distanceCm2;
+int distanceCm3;
+String distance1, distance2, distance3;
+
+void turnRight() {
+  m.motor(1, FORWARD, 0);
+  m.motor(2, FORWARD, 0); 
+  m.motor(3, FORWARD, 0);
+  m.motor(4, FORWARD, 0);  
+  delay(2000);
+  m.motor(1, BACKWARD, 200);
+  m.motor(2, FORWARD, 200); 
+  m.motor(3, FORWARD, 200);
+  m.motor(4, BACKWARD, 200);
+}
+
+void turnLeft() {
+  m.motor(1, FORWARD, 0);
+  m.motor(2, FORWARD, 0); 
+  m.motor(3, FORWARD, 0);
+  m.motor(4, FORWARD, 0);  
+  delay(2000);
+  m.motor(1, FORWARD, 200);
+  m.motor(2, BACKWARD, 200); 
+  m.motor(3, BACKWARD, 200);
+  m.motor(4, FORWARD, 200);
+}
+
+void goForward() {
+  m.motor(1, FORWARD, 200);
+  m.motor(2, FORWARD, 200);
+  m.motor(3, FORWARD, 200);
+  m.motor(4, FORWARD, 200);  
+}
+
+void goBackward() {
+  m.motor(1, BACKWARD, 200);
+  m.motor(2, BACKWARD, 200);
+  m.motor(3, BACKWARD, 200);
+  m.motor(4, BACKWARD, 200);  
+}
+
+void setup() {
+  pinMode(A1, OUTPUT);                                                    //Analog pin A1 connected to TRIG
+  pinMode(A0, INPUT);                                                     //Analog pin A0 connected to ECHO
+  pinMode(A3, OUTPUT);
+  pinMode(A2, INPUT);
+  pinMode(A5, OUTPUT);
+  pinMode(A4, INPUT);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+      Serial.println("Trying to connect...");
+      delay(200);
+  }
+  
+  // server.on("/", handleConnect);
+  ThingSpeak.begin(client);
+  server.begin();
+}
+
+void loop()
+{
+  digitalWrite(A1, LOW);
+  delayMicroseconds(2);
+  digitalWrite(A1, HIGH);                                                 //give a pulse of 10us on TRIG
+  delayMicroseconds(10);
+  digitalWrite(A1, LOW);
+  duration1 = pulseIn(A0, HIGH);                                          //check time elasped in receiving back the pulse on ECHO
+  delay(200);
+  digitalWrite(A3, LOW);
+  delayMicroseconds(2);
+  digitalWrite(A3, HIGH);                                                 //give a pulse of 10us on TRIG
+  delayMicroseconds(10);
+  digitalWrite(A3, LOW);
+  duration2 = pulseIn(A2, HIGH);
+  delay(200);
+  digitalWrite(A5, LOW);
+  delayMicroseconds(2);
+  digitalWrite(A5, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(A5, LOW);
+  duration3 = pulseIn(A4, HIGH);
+  delay(200);
+  m.motor(1, FORWARD, 200);
+  m.motor(2, FORWARD, 200); 
+  m.motor(3, FORWARD, 200);
+  m.motor(4, FORWARD, 200);
+  distanceCm1 = duration1 * 0.034 / 2;                                    //convert to distance in cm
+  distanceCm2 = duration2 * 0.034 / 2;
+  distanceCm3 = duration3 * 0.034 / 2;
+  if(distanceCm1 <= 20)                                                   //if distance less than 20cm display on monitor
+  {
+      if(distanceCm2 <= 20 && distanceCm3 <= 20) {
+          goBackward();
+          distance1 = String(distanceCm1);
+          distance2 = String(distanceCm2);
+          distance3 = String(distanceCm3);
+          direction = "4";
+          ThingSpeak.setField(1, distance1);
+          ThingSpeak.setField(2, distance2);
+          ThingSpeak.setField(3, distance3);
+          ThingSpeak.setField(4, direction);
+      }
+      else if(distanceCm3 <= 20) {
+          turnLeft();
+          distance1 = String(distanceCm1);
+          distance2 = String(distanceCm2);
+          distance3 = String(distanceCm3);
+          direction = "3";
+          ThingSpeak.setField(1, distance1);
+          ThingSpeak.setField(2, distance2);
+          ThingSpeak.setField(3, distance3);
+          ThingSpeak.setField(4, direction);
+      }
+      else {
+        turnRight();
+        distance1 = String(distanceCm1);
+        distance2 = String(distanceCm2);
+        distance3 = String(distanceCm3);
+        direction = "2";
+        ThingSpeak.setField(1, distance1);
+        ThingSpeak.setField(2, distance2);
+        ThingSpeak.setField(3, distance3);
+        ThingSpeak.setField(4, direction);
+      }
+  }
+  else {
+      goForward();
+      distance1 = String(distanceCm1);
+      distance2 = String(distanceCm2);
+      distance3 = String(distanceCm3);
+      direction = "1";
+      ThingSpeak.setField(1, distance1);
+      ThingSpeak.setField(2, distance2);
+      ThingSpeak.setField(3, distance3);
+      ThingSpeak.setField(4, direction);
+  }
+}

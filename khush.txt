@@ -5,7 +5,7 @@
 #include <ThingSpeak.h>
 #include <WiFi.h>
 #include <WebServer.h>
-#include <HTTPClient.h>
+
 const char* ssid = "ben-hp";   // your network SSID (name) 
 const char* password = "myhphotspot";   // your network password
 long channel_num= 1848245;
@@ -16,24 +16,24 @@ WiFiClient  client;
 WebServer server(80);
 
 String GET_Request(const char* server) {
-  HTTPClient http;    
-  http.begin(server);
-  int httpResponseCode = http.GET();
+  // HTTPClient http;    
+  // http.begin(server);
+  // int httpResponseCode = http.GET();
   
-  String payload = "{}"; 
+  // String payload = "{}"; 
   
-  if (httpResponseCode>0) {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-    payload = http.getString();
-  }
-  else {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCode);
-  }
-  http.end();
+  // if (httpResponseCode>0) {
+  //   Serial.print("HTTP Response code: ");
+  //   Serial.println(httpResponseCode);
+  //   payload = http.getString();
+  // }
+  // else {
+  //   Serial.print("Error code: ");
+  //   Serial.println(httpResponseCode);
+  // }
+  // http.end();
 
-  return payload;
+  // return payload;
 }
 
 String SendHTML(void){
@@ -61,9 +61,9 @@ String SendHTML(void){
   return ptr;
 }
 
-void handleConnect() {
-  server.send(200,"text/html",SendHTML());
-}
+// void handleConnect() {
+//   server.send(200,"text/html",SendHTML());
+// }
 
 
 MotorDriver m;
@@ -210,4 +210,5 @@ void loop()
       ThingSpeak.setField(3, distance3);
       ThingSpeak.setField(4, direction);
   }
+  ThingSpeak.writeFields(channel_num,writeAPIKey);
 }

@@ -154,11 +154,13 @@ void createCI(String& val){
 // add the lines in step 3-6 inside this function
   uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
   int i = 0;
+  int cond = 0;
   
   char data1[] = "0123456789012345";
   char data2[] = "0123456789012345";
   if (val.length() < 16 )
   {
+   
     for(i=0;i<16;i++){
       data1[i]=val[i];
     }
@@ -168,7 +170,10 @@ void createCI(String& val){
     
   }
   
-  else{ # WILL HAVE TO USE 2 BLOCKS AS DATA LENGTH > 16 BYTES
+  else
+  { 
+    # WILL HAVE TO USE 2 BLOCKS AS DATA LENGTH > 16 BYTES
+    cond = 1
     for(i=0;i<val.length();i++){
       data1[i]=val[i];
     }
